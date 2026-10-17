@@ -1,0 +1,169 @@
+package com.pctheone.money_flow.repositories;
+
+import com.pctheone.money_flow.dto.AmountAndCategoryDTO;
+import com.pctheone.money_flow.dto.MonthlyIncomeExpenseDTO;
+import com.pctheone.money_flow.dto.TransactionDTO;
+import com.pctheone.money_flow.entities.TransactionsEntity;
+import com.pctheone.money_flow.enums.CurrencyEnum;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+public interface TransactionsRepository extends JpaRepository<TransactionsEntity, Integer> {
+
+    //---- Row lock so two concurrent edits can't both compute the balance delta from the same old amount.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM TransactionsEntity t WHERE t.transactionsId = :id")
+    Optional<TransactionsEntity> findByIdForUpdate(@Param("id") Integer id);
+
+
+
+    @Query("SELECT new com.pctheone.money_flow.dto.AmountAndCategoryDTO(SUM(t.amount), t.category.description) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId " +
+            "GROUP BY t.category.description ORDER BY SUM(t.amount) DESC")
+    List<AmountAndCategoryDTO> totalSpentInMonthByCategoryDesc(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId);
+
+    @Query("SELECT new com.pctheone.money_flow.dto.AmountAndCategoryDTO(SUM(t.amount), t.category.description) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId AND t.account.accountId = :accountId " +
+            "GROUP BY t.category.description ORDER BY SUM(t.amount) DESC")
+    List<AmountAndCategoryDTO> totalSpentInMonthByCategoryDescByAccount(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId);
+
+    @Query("SELECT new com.pctheone.money_flow.dto.TransactionDTO(t.transactionsId, t.description, t.amount, t.timestamp, t.category.description, t.operationType, t.account.currency, t.category.categoryId) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId")
+    List<TransactionDTO> listAllTransaction(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId);
+
+    @Query("SELECT new com.pctheone.money_flow.dto.TransactionDTO(t.transactionsId, t.description, t.amount, t.timestamp, t.category.description, t.operationType, t.account.currency, t.category.categoryId) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId AND t.account.accountId = :accountId")
+    List<TransactionDTO> listAllTransactionByAccount(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId);
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.category.categoryId = :categoryId AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId")
+    BigDecimal totalSpentByCategoryByTime(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("categoryId") Integer categoryId, @Param("ownerId") Integer ownerId);
+
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.recurringPayment IS NOT NULL AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId")
+    BigDecimal totalRecurringByTime(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId);
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.recurringPayment IS NOT NULL AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId AND t.account.accountId = :accountId")
+    BigDecimal totalRecurringByTimeByAccount(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId);
+
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'INCOME' AND t.owner.ownerId = :ownerId")
+    BigDecimal totalIncomeByTime(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId);
+
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'INCOME' AND t.owner.ownerId = :ownerId AND t.account.accountId = :accountId")
+    BigDecimal totalIncomeByTimeByAccount(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId);
+
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId")
+    BigDecimal totalSpentByTime(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId);
+
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId AND t.account.accountId = :accountId")
+    BigDecimal totalSpentByTimeAndAccountId(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId);
+
+    @Modifying
+    @Query("INSERT into TransactionsEntity (owner, account, category, description, timestamp, operationType, amount) " +
+            "VALUES (:ownerId, :accountId, :categoryId, :description, :timestamp, 'EXPENSE', :amount)")
+    void insertSingleExpense(@Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId, @Param("categoryId") Integer categoryId, @Param("description") String description,
+                             @Param("timestamp") LocalDate timestamp, @Param ("amount") BigDecimal amount);
+
+    @Modifying
+    @Query("INSERT into TransactionsEntity (owner, account, category, description, timestamp, operationType, amount) " +
+            "VALUES (:ownerId, :accountId, :categoryId, :description, :timestamp, 'INCOME', :amount)")
+    void insertSingleIncome(@Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId, @Param("categoryId") Integer categoryId, @Param("description") String description,
+                            @Param("timestamp") LocalDate timestamp, @Param ("amount") BigDecimal amount);
+
+    @Query("SELECT FUNCTION('date_trunc', 'month', t.timestamp), " +
+    "SUM (CASE WHEN t.operationType = 'INCOME' THEN t.amount ELSE 0 END), " +
+    "SUM (CASE WHEN t.operationType = 'EXPENSE' THEN t.amount ELSE 0 END) " +
+    "FROM TransactionsEntity t " +
+    "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId " +
+    "GROUP BY FUNCTION('date_trunc', 'month', t.timestamp) " +
+    "ORDER BY FUNCTION('date_trunc', 'month', t.timestamp)")
+    List<Object[]> incomeExpenseMonthly(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId);
+
+    @Query("SELECT FUNCTION('date_trunc', 'month', t.timestamp), " +
+    "SUM (CASE WHEN t.operationType = 'INCOME' THEN t.amount ELSE 0 END), " +
+    "SUM (CASE WHEN t.operationType = 'EXPENSE' THEN t.amount ELSE 0 END) " +
+    "FROM TransactionsEntity t " +
+    "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId AND t.account.accountId = :accountId " +
+    "GROUP BY FUNCTION('date_trunc', 'month', t.timestamp) " +
+    "ORDER BY FUNCTION('date_trunc', 'month', t.timestamp)")
+    List<Object[]> incomeExpenseMonthlyByAccount(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId);
+
+    @Query("SELECT FUNCTION('date_trunc', 'day', t.timestamp), " +
+            "SUM (CASE WHEN t.operationType = 'INCOME' THEN t.amount ELSE 0 END), " +
+            "SUM (CASE WHEN t.operationType = 'EXPENSE' THEN t.amount ELSE 0 END) " +
+            "FROM TransactionsEntity t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId " +
+            "GROUP BY FUNCTION('date_trunc', 'day', t.timestamp) " +
+            "ORDER BY FUNCTION('date_trunc', 'day', t.timestamp)")
+    List<Object[]> balanceHistory(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId);
+
+    @Query("SELECT FUNCTION('date_trunc', 'day', t.timestamp), " +
+            "SUM (CASE WHEN t.operationType = 'INCOME' THEN t.amount ELSE 0 END), " +
+            "SUM (CASE WHEN t.operationType = 'EXPENSE' THEN t.amount ELSE 0 END) " +
+            "FROM TransactionsEntity t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId AND t.account.accountId = :accountId " +
+            "GROUP BY FUNCTION('date_trunc', 'day', t.timestamp) " +
+            "ORDER BY FUNCTION('date_trunc', 'day', t.timestamp)")
+    List<Object[]> balanceHistoryByAccount(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("accountId") Integer accountId);
+
+    //---- Currency-scoped variants: aggregate only the owner's accounts in the given currency.
+    //---- Values in different currencies are never summed together (there is no exchange rate).
+
+    @Query("SELECT new com.pctheone.money_flow.dto.AmountAndCategoryDTO(SUM(t.amount), t.category.description) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId AND t.account.currency = :currency " +
+            "GROUP BY t.category.description ORDER BY SUM(t.amount) DESC")
+    List<AmountAndCategoryDTO> totalSpentInMonthByCategoryDescByCurrency(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("currency") CurrencyEnum currency);
+
+    @Query("SELECT new com.pctheone.money_flow.dto.TransactionDTO(t.transactionsId, t.description, t.amount, t.timestamp, t.category.description, t.operationType, t.account.currency, t.category.categoryId) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId AND t.account.currency = :currency")
+    List<TransactionDTO> listAllTransactionByCurrency(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("currency") CurrencyEnum currency);
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.recurringPayment IS NOT NULL AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId AND t.account.currency = :currency")
+    BigDecimal totalRecurringByTimeByCurrency(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("currency") CurrencyEnum currency);
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'INCOME' AND t.owner.ownerId = :ownerId AND t.account.currency = :currency")
+    BigDecimal totalIncomeByTimeByCurrency(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("currency") CurrencyEnum currency);
+
+    @Query("SELECT COALESCE(sum(t.amount), 0) from TransactionsEntity as t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.operationType = 'EXPENSE' AND t.owner.ownerId = :ownerId AND t.account.currency = :currency")
+    BigDecimal totalSpentByTimeByCurrency(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("currency") CurrencyEnum currency);
+
+    @Query("SELECT FUNCTION('date_trunc', 'month', t.timestamp), " +
+    "SUM (CASE WHEN t.operationType = 'INCOME' THEN t.amount ELSE 0 END), " +
+    "SUM (CASE WHEN t.operationType = 'EXPENSE' THEN t.amount ELSE 0 END) " +
+    "FROM TransactionsEntity t " +
+    "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId AND t.account.currency = :currency " +
+    "GROUP BY FUNCTION('date_trunc', 'month', t.timestamp) " +
+    "ORDER BY FUNCTION('date_trunc', 'month', t.timestamp)")
+    List<Object[]> incomeExpenseMonthlyByCurrency(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("currency") CurrencyEnum currency);
+
+    @Query("SELECT FUNCTION('date_trunc', 'day', t.timestamp), " +
+            "SUM (CASE WHEN t.operationType = 'INCOME' THEN t.amount ELSE 0 END), " +
+            "SUM (CASE WHEN t.operationType = 'EXPENSE' THEN t.amount ELSE 0 END) " +
+            "FROM TransactionsEntity t " +
+            "WHERE t.timestamp BETWEEN :startDate AND :endDate AND t.owner.ownerId = :ownerId AND t.account.currency = :currency " +
+            "GROUP BY FUNCTION('date_trunc', 'day', t.timestamp) " +
+            "ORDER BY FUNCTION('date_trunc', 'day', t.timestamp)")
+    List<Object[]> balanceHistoryByCurrency(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("ownerId") Integer ownerId, @Param("currency") CurrencyEnum currency);
+}

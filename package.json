@@ -1,0 +1,25 @@
+{
+  "name": "moneyflow-magagnini",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Money Flow - Personal Finance Tracker & Intelligence Hub (Web Dashboard + Telegram Bot)",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "lint": "npm --prefix frontend run lint"
+  },
+  "keywords": [
+    "finance",
+    "personal-finance",
+    "dashboard",
+    "react",
+    "vite",
+    "tailwind",
+    "typescript",
+    "spring-boot",
+    "telegram-bot"
+  ],
+  "author": "Lucas Magagnini",
+  "license": "MIT"
+}
