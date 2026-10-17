@@ -13,7 +13,7 @@ import type {
 } from './types'
 
 const DEMO_MODE_KEY = 'money-flow:is-demo'
-const DEMO_DATA_KEY = 'money-flow:demo-dataset'
+const DEMO_DATA_KEY = 'money-flow:demo-dataset-v2'
 
 export function isDemoActive(): boolean {
   return localStorage.getItem(DEMO_MODE_KEY) === 'true'
@@ -53,156 +53,11 @@ const DEFAULT_CATEGORIES: Category[] = [
 ]
 
 const DEFAULT_ACCOUNTS: Account[] = [
-  { accountId: 1, description: 'Nubank Principal', amount: 14850.5, currency: 'BRL' },
-  { accountId: 2, description: 'Itaú Investimentos', amount: 32400.0, currency: 'BRL' },
-  { accountId: 3, description: 'Wise Multimoeda', amount: 2850.0, currency: 'EUR' },
-  { accountId: 4, description: 'Nomad Global', amount: 1950.0, currency: 'USD' },
+  { accountId: 1, description: 'Conta Principal', amount: 0.0, currency: 'BRL' },
 ]
 
 function generateInitialTransactions(): Transaction[] {
-  const today = new Date()
-  const y = today.getFullYear()
-  const m = today.getMonth()
-
-  const formatD = (day: number) => {
-    const d = new Date(y, m, day)
-    return d.toISOString().slice(0, 10)
-  }
-
-  return [
-    {
-      id: 1,
-      description: 'Salário Mensal',
-      amount: 12500.0,
-      date: formatD(5),
-      categoryDescription: 'Salário & Pro-labore',
-      operationType: 'INCOME',
-      currency: 'BRL',
-      categoryId: 8,
-    },
-    {
-      id: 2,
-      description: 'Consultoria Web Fullstack',
-      amount: 4200.0,
-      date: formatD(12),
-      categoryDescription: 'Freelance & Consultoria',
-      operationType: 'INCOME',
-      currency: 'BRL',
-      categoryId: 9,
-    },
-    {
-      id: 3,
-      description: 'Supermercado Pão de Açúcar',
-      amount: 684.5,
-      date: formatD(today.getDate() > 2 ? today.getDate() - 1 : 2),
-      categoryDescription: 'Mercado',
-      operationType: 'EXPENSE',
-      currency: 'BRL',
-      categoryId: 1,
-    },
-    {
-      id: 4,
-      description: 'Aluguel & Condomínio',
-      amount: 2800.0,
-      date: formatD(10),
-      categoryDescription: 'Moradia & Contas',
-      operationType: 'EXPENSE',
-      currency: 'BRL',
-      categoryId: 3,
-    },
-    {
-      id: 5,
-      description: 'Jantar Italiano',
-      amount: 245.9,
-      date: formatD(today.getDate() > 4 ? today.getDate() - 3 : 4),
-      categoryDescription: 'Restaurantes',
-      operationType: 'EXPENSE',
-      currency: 'BRL',
-      categoryId: 2,
-    },
-    {
-      id: 6,
-      description: 'Assinatura OpenAI & Claude',
-      amount: 220.0,
-      date: formatD(8),
-      categoryDescription: 'Tecnologia & Ferramentas',
-      operationType: 'EXPENSE',
-      currency: 'BRL',
-      categoryId: 7,
-    },
-    {
-      id: 7,
-      description: 'Combustível Posto Ipiranga',
-      amount: 180.0,
-      date: formatD(14),
-      categoryDescription: 'Transporte',
-      operationType: 'EXPENSE',
-      currency: 'BRL',
-      categoryId: 4,
-    },
-    {
-      id: 8,
-      description: 'Farmácia & Vitaminas',
-      amount: 145.2,
-      date: formatD(15),
-      categoryDescription: 'Saúde & Farmácia',
-      operationType: 'EXPENSE',
-      currency: 'BRL',
-      categoryId: 6,
-    },
-    {
-      id: 9,
-      description: 'Netflix & Spotify',
-      amount: 89.9,
-      date: formatD(16),
-      categoryDescription: 'Lazer & Assinaturas',
-      operationType: 'EXPENSE',
-      currency: 'BRL',
-      categoryId: 5,
-    },
-    {
-      id: 10,
-      description: 'Dividendos FIIs',
-      amount: 620.0,
-      date: formatD(15),
-      categoryDescription: 'Investimentos & Dividendos',
-      operationType: 'INCOME',
-      currency: 'BRL',
-      categoryId: 10,
-    },
-    // Transações EUR
-    {
-      id: 11,
-      description: 'Projeto Europa Frontend',
-      amount: 1800.0,
-      date: formatD(8),
-      categoryDescription: 'Freelance & Consultoria',
-      operationType: 'INCOME',
-      currency: 'EUR',
-      categoryId: 9,
-    },
-    {
-      id: 12,
-      description: 'Hetzner Cloud & Vercel Pro',
-      amount: 75.0,
-      date: formatD(11),
-      categoryDescription: 'Tecnologia & Ferramentas',
-      operationType: 'EXPENSE',
-      currency: 'EUR',
-      categoryId: 7,
-    },
-    // Transações USD
-    {
-      id: 13,
-      description: 'Github Copilot & Tools',
-      amount: 40.0,
-      date: formatD(9),
-      categoryDescription: 'Tecnologia & Ferramentas',
-      operationType: 'EXPENSE',
-      currency: 'USD',
-      categoryId: 7,
-    },
-  ]
+  return []
 }
 
 export function resetDemoData(): void {
@@ -211,9 +66,9 @@ export function resetDemoData(): void {
     categories: DEFAULT_CATEGORIES,
     transactions: generateInitialTransactions(),
     profile: {
-      name: 'Lucas Magagnini',
-      email: 'magagnini@moneyflow.dev',
-      telegramLinked: true,
+      name: 'Minha Conta',
+      email: 'usuario@moneyflow.dev',
+      telegramLinked: false,
     },
   }
   localStorage.setItem(DEMO_DATA_KEY, JSON.stringify(initial))
@@ -323,15 +178,25 @@ export const mockStore = {
     store.transactions.unshift(newTx)
 
     // Ajusta saldo da conta
-    const accountIndex = data.accountId
-      ? store.accounts.findIndex((a) => a.accountId === data.accountId)
-      : store.accounts.findIndex((a) => a.currency === data.currency)
+    if (store.accounts.length === 0) {
+      const initialAmount = data.operationType === 'EXPENSE' ? -data.amount : data.amount
+      store.accounts.push({
+        accountId: 1,
+        description: 'Conta Principal',
+        amount: initialAmount,
+        currency: data.currency,
+      })
+    } else {
+      const accountIndex = data.accountId
+        ? store.accounts.findIndex((a) => a.accountId === data.accountId)
+        : store.accounts.findIndex((a) => a.currency === data.currency)
 
-    if (accountIndex !== -1) {
-      if (data.operationType === 'EXPENSE') {
-        store.accounts[accountIndex].amount -= data.amount
-      } else {
-        store.accounts[accountIndex].amount += data.amount
+      if (accountIndex !== -1) {
+        if (data.operationType === 'EXPENSE') {
+          store.accounts[accountIndex].amount -= data.amount
+        } else {
+          store.accounts[accountIndex].amount += data.amount
+        }
       }
     }
 

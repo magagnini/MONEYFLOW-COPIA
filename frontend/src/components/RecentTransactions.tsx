@@ -101,7 +101,7 @@ export function RecentTransactions({ data, loading = false, limit = 12, onSelect
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-10 text-center">
           <p className="text-sm text-fg-muted">Nenhuma transação neste período.</p>
           <p className="font-mono text-xs text-fg-subtle">
-            Mande um áudio para o bot para ver seu primeiro gasto aqui.
+            Clique no botão "+ Nova Transação" acima para registrar sua primeira movimentação.
           </p>
         </div>
       ) : (
